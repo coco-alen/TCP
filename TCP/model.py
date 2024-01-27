@@ -2,8 +2,10 @@ from collections import deque
 import numpy as np
 import torch 
 from torch import nn
-from TCP.resnet import *
+from torchvision import models
 
+from TCP.resnet import *
+from TCP.mobilenet import *
 
 class PIDController(object):
 	def __init__(self, K_P=1.0, K_I=0.0, K_D=0.0, n=20):
@@ -38,7 +40,9 @@ class TCP(nn.Module):
 		self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
 		self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
 
-		self.perception = resnet34(pretrained=True)
+		# self.perception = resnet34(pretrained=True)
+		# self.perception = resnet18(pretrained=False)
+		self.perception = MobileNetV2(width_mult=0.5, num_classes=100)
 
 		self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, 128),
@@ -48,7 +52,7 @@ class TCP(nn.Module):
 						)
 
 		self.join_traj = nn.Sequential(
-							nn.Linear(128+1000, 512),
+							nn.Linear(128+100, 512),
 							nn.ReLU(inplace=True),
 							nn.Linear(512, 512),
 							nn.ReLU(inplace=True),
@@ -66,7 +70,7 @@ class TCP(nn.Module):
 						)
 
 		self.speed_branch = nn.Sequential(
-							nn.Linear(1000, 256),
+							nn.Linear(100, 256),
 							nn.ReLU(inplace=True),
 							nn.Linear(256, 256),
 							nn.Dropout2d(p=0.5),
@@ -101,6 +105,7 @@ class TCP(nn.Module):
 				nn.ReLU(inplace=True),
 			)
 		self.decoder_ctrl = nn.GRUCell(input_size=256+4, hidden_size=256)
+		# self.decoder_ctrl = nn.Linear(256+4, 256)
 		self.output_ctrl = nn.Sequential(
 				nn.Linear(256, 256),
 				nn.ReLU(inplace=True),
@@ -112,6 +117,8 @@ class TCP(nn.Module):
 
 
 		self.decoder_traj = nn.GRUCell(input_size=4, hidden_size=256)
+		# self.decoder_traj = nn.Linear(4, 256)
+
 		self.output_traj = nn.Linear(256, 2)
 
 		self.init_att = nn.Sequential(
@@ -137,6 +144,8 @@ class TCP(nn.Module):
 
 	def forward(self, img, state, target_point):
 		feature_emb, cnn_feature = self.perception(img)
+		# print(feature_emb.shape)
+		# print(cnn_feature.shape)
 		outputs = {}
 		outputs['pred_speed'] = self.speed_branch(feature_emb)
 		measurement_feature = self.measurements(state)
@@ -154,7 +163,10 @@ class TCP(nn.Module):
 		# autoregressive generation of output waypoints
 		for _ in range(self.config.pred_len):
 			x_in = torch.cat([x, target_point], dim=1)
+
 			z = self.decoder_traj(x_in, z)
+			# z = self.decoder_traj(x_in)
+
 			traj_hidden_state.append(z)
 			dx = self.output_traj(z)
 			x = dx + x
@@ -183,7 +195,10 @@ class TCP(nn.Module):
 
 		for _ in range(self.config.pred_len):
 			x_in = torch.cat([x, mu, sigma], dim=1)
+			
 			h = self.decoder_ctrl(x_in, h)
+			# h = self.decoder_ctrl(x_in)
+
 			wp_att = self.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1)).view(-1, 1, 8, 29)
 			new_feature_emb = torch.sum(cnn_feature*wp_att, dim=(2, 3))
 			merged_feature = self.merge(torch.cat([h, new_feature_emb], 1))

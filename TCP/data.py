@@ -84,7 +84,6 @@ class CARLA_Data(Dataset):
 		"""Returns the item at index idx. """
 		data = dict()
 		data['front_img'] = self.front_img[index]
-
 		if self.img_aug:
 			data['front_img'] = self._im_transform(augmenter(self._batch_read_number).augment_image(np.array(
 					Image.open(self.root+self.front_img[index][0]))))

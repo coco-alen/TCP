@@ -10,6 +10,7 @@ from torch.distributions import Beta
 
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
 
@@ -156,8 +157,8 @@ if __name__ == "__main__":
 	parser.add_argument('--id', type=str, default='TCP', help='Unique experiment identifier.')
 	parser.add_argument('--epochs', type=int, default=60, help='Number of train epochs.')
 	parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate.')
-	parser.add_argument('--val_every', type=int, default=3, help='Validation frequency (epochs).')
-	parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
+	parser.add_argument('--val_every', type=int, default=1, help='Validation frequency (epochs).')
+	parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
 	parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
 	parser.add_argument('--gpus', type=int, default=1, help='number of gpus')
 
@@ -189,12 +190,13 @@ if __name__ == "__main__":
 											plugins=DDPPlugin(find_unused_parameters=False),
 											profiler='simple',
 											benchmark=True,
-											log_every_n_steps=1,
-											flush_logs_every_n_steps=5,
+											log_every_n_steps=100,
+											flush_logs_every_n_steps=500,
 											callbacks=[checkpoint_callback,
 														],
 											check_val_every_n_epoch = args.val_every,
-											max_epochs = args.epochs
+											max_epochs = args.epochs,
+											logger=CSVLogger(args.logdir, name=args.id)
 											)
 
 	trainer.fit(TCP_model, dataloader_train, dataloader_val)
