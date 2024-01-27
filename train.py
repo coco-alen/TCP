@@ -179,6 +179,17 @@ if __name__ == "__main__":
 
 	TCP_model = TCP_planner(config, args.lr)
 
+	os.makedirs(args.logdir, exist_ok=True)
+	with open(os.path.join(args.logdir, "model_config.txt"), 'w') as f:
+		f.write(str(TCP_model.model))
+		f.write('\n\n===============================\n\n')
+		params = dir(config)
+		for param in params:
+			if "__" not in param:
+				f.write(f"{param}:  {getattr(config, param)}\n")
+		f.write('\n\n===============================\n\n')
+		f.write(str(args))
+
 	checkpoint_callback = ModelCheckpoint(save_weights_only=False, mode="min", monitor="val_loss", save_top_k=2, save_last=True,
 											dirpath=args.logdir, filename="best_{epoch:02d}-{val_loss:.3f}")
 	checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"
@@ -198,6 +209,7 @@ if __name__ == "__main__":
 											max_epochs = args.epochs,
 											logger=CSVLogger(args.logdir, name=args.id)
 											)
+	
 
 	trainer.fit(TCP_model, dataloader_train, dataloader_val)
 

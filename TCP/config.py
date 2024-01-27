@@ -1,5 +1,7 @@
 import os
+from dataclasses import dataclass
 
+@dataclass(init=False)
 class GlobalConfig:
 	""" base architecture configurations """
 	# Data
@@ -7,7 +9,7 @@ class GlobalConfig:
 	pred_len = 4 # future waypoints predicted
 
 	# data root
-	root_dir_all = "/ssd/dataset/tcp/data/tcp_carla_data"
+	root_dir_all = "/data/hyou37/yipin/dataset/tcp"
 
 	train_towns = ['town01', 'town03', 'town04',  'town06', ]
 	val_towns = ['town02', 'town05', 'town07', 'town10']
@@ -62,3 +64,10 @@ class GlobalConfig:
 	def __init__(self, **kwargs):
 		for k,v in kwargs.items():
 			setattr(self, k, v)
+
+if __name__ == "__main__":
+	config = GlobalConfig()
+	params = dir(config)
+	for param in params:
+		if "__" not in param:
+			print(f"{param}:  {getattr(config, param)}")
