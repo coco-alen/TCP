@@ -137,6 +137,8 @@ class MobileNetV2(nn.Module):
         # make it nn.Sequential
         self.features = nn.Sequential(*features)
 
+        self.remember = nn.GRU(input_size=self.last_channel, hidden_size=self.last_channel,
+                                num_layers=2, batch_first=True)
         # building classifier
         self.classifier = nn.Sequential(
             nn.Dropout(0.2),
@@ -162,9 +164,13 @@ class MobileNetV2(nn.Module):
         cnn_feature = self.features(x)
         # Cannot use "squeeze" as batch-size can be 1
         x = nn.functional.adaptive_avg_pool2d(cnn_feature, (1, 1))
-        x = torch.flatten(x, 1)
+        x = torch.flatten(x, 2)
+        x = x.permute(0, 2, 1)
+        x, _ = self.remember(x)
+        x = x[:, -1, :]
         x = self.classifier(x)
         return x, cnn_feature
+
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)

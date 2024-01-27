@@ -42,7 +42,7 @@ class TCP(nn.Module):
 
 		# self.perception = resnet34(pretrained=True)
 		# self.perception = resnet18(pretrained=False)
-		self.perception = MobileNetV2(width_mult=0.35, num_classes=10)
+		self.perception = MobileNetV2(width_mult=0.35, num_classes=100)
 
 		self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, 128),
@@ -52,7 +52,7 @@ class TCP(nn.Module):
 						)
 
 		self.join_traj = nn.Sequential(
-							nn.Linear(128+10, 512),
+							nn.Linear(128+100, 512),
 							nn.ReLU(inplace=True),
 							nn.Linear(512, 512),
 							nn.ReLU(inplace=True),
@@ -70,7 +70,7 @@ class TCP(nn.Module):
 						)
 
 		self.speed_branch = nn.Sequential(
-							nn.Linear(10, 256),
+							nn.Linear(100, 256),
 							nn.ReLU(inplace=True),
 							nn.Linear(256, 256),
 							nn.Dropout2d(p=0.5),
