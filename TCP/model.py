@@ -6,6 +6,7 @@ from torchvision import models
 
 from TCP.resnet import *
 from TCP.mobilenet import *
+from TCP.litemono.LiteMono_encoder import LiteMono
 
 class PIDController(object):
 	def __init__(self, K_P=1.0, K_I=0.0, K_D=0.0, n=20):
@@ -42,7 +43,8 @@ class TCP(nn.Module):
 
 		# self.perception = resnet34(pretrained=True)
 		# self.perception = resnet18(pretrained=False)
-		self.perception = MobileNetV2(width_mult=0.35, num_classes=100)
+		self.perception = LiteMono(model='lite-mono-tiny', height=256, width=900)
+		# self.perception = MobileNetV2(width_mult=0.35, num_classes=100)
 
 		self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, 128),
@@ -52,7 +54,7 @@ class TCP(nn.Module):
 						)
 
 		self.join_traj = nn.Sequential(
-							nn.Linear(128+100, 512),
+							nn.Linear(128+1000, 512),
 							nn.ReLU(inplace=True),
 							nn.Linear(512, 512),
 							nn.ReLU(inplace=True),
@@ -70,7 +72,7 @@ class TCP(nn.Module):
 						)
 
 		self.speed_branch = nn.Sequential(
-							nn.Linear(100, 256),
+							nn.Linear(1000, 256),
 							nn.ReLU(inplace=True),
 							nn.Linear(256, 256),
 							nn.Dropout2d(p=0.5),

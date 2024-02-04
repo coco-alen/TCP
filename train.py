@@ -198,7 +198,7 @@ if __name__ == "__main__":
 											gpus = args.gpus,
 											accelerator='ddp',
 											sync_batchnorm=True,
-											plugins=DDPPlugin(find_unused_parameters=False),
+											plugins=DDPPlugin(find_unused_parameters=True),
 											profiler='simple',
 											benchmark=True,
 											log_every_n_steps=100,
